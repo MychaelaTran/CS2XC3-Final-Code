@@ -60,13 +60,40 @@ def generate_random_graph(nodes, edges):
         weight = random.randint(1, 100)
         if (u, v) not in edges_have and (v, u) not in edges_have:
             G.add_edge(u, v, weight)
-            G.add_edge(v, u, weight) #delte if directed  
             edges_have.add((u, v))
 
     return G
 
 
-def allPairsDijkstra(graph):
+#uses a dijkstra approach 
+#returning matrix where the 1st matrix (row, col) is shortest path and 2nd is the node before
+def allPairsPositive(graph : Graph) -> tuple[list[list[int]], list[list[int]]]: 
+    for i in range(v):
+        #run dijkstras
+        #add results
+        #TODO
+        pass
     return
+
+def dijkstra(graph):
+    return 
+    
+
+
+#uses bellman ford approach
+def allPairsNegative(graph):
+    #check v times and if on vth run we can relax, then there is a negatice cycle and no shortest path 
+    return 
+
+#uses bellman ford approach
+def allPairsNegative(graph):
+    #check v times and if on vth run we can relax, then there is a negatice cycle and no shortest path 
+    #TODO init distance matrix
+
+    for i in range(v):
+        for j in range(v):
+            for k in range(v):
+                relax(...)
+    
 
 #test
