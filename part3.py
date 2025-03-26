@@ -1,6 +1,8 @@
 
 import random
-#weighted undirected graph (took from my lab 3)
+import math
+import heapq
+#weighted directed graph (took from my lab 3)
 class Graph():
     #adjacney list 
 
@@ -28,10 +30,6 @@ class Graph():
             self.graph[node1].append(node2)
             self.weight[(node1, node2)] = weight
 
-            #since it is undirected
-            #delete if directed
-            self.graph[node2].append(node1)
-            self.weight[(node2, node1)] = weight
 
     def number_of_nodes(self,):
         return len(self.graph)
@@ -44,10 +42,13 @@ class Graph():
         for node1 in self.graph:
             for node2 in self.graph[node1]:
                 total += self.weight[(node1, node2)]
-                
-        # because it is undirected
-        #delete if directed 
-        return total/2
+
+        return total
+    def get_graph(self,):
+        return self.graph
+    
+    def get_weights(self,): 
+        return self.weight
 
 def generate_random_graph(nodes, edges):
     #makes random weighted graph thats underircted 
@@ -58,42 +59,151 @@ def generate_random_graph(nodes, edges):
     while len(edges_have) < edges:
         u, v = random.sample(range(nodes), 2)  #picks 2 distinct nodes
         weight = random.randint(1, 100)
-        if (u, v) not in edges_have and (v, u) not in edges_have:
+        if (u, v) not in edges_have:
             G.add_edge(u, v, weight)
             edges_have.add((u, v))
+
 
     return G
 
 
-#uses a dijkstra approach 
-#returning matrix where the 1st matrix (row, col) is shortest path and 2nd is the node before
-def allPairsPositive(graph : Graph) -> tuple[list[list[int]], list[list[int]]]: 
-    for i in range(v):
-        #run dijkstras
-        #add results
-        #TODO
-        pass
-    return
+#uses a dijkstra approach with binary min heao
+#returning 2dmatrix where the dist_matrix[i][j] is shortest patjh from i to j
+#returning 2d matrix for predecessors where dist_matrix[i][j] is the predessor of j on shortest pathj from i to j (if -1 means no predeccors (ie all start nodes will have this))
+#know dijstra is O((V+E)logV) - usually O(ELOGV) since edges dominate
+#creating dist matrix are each V2 but thats smaller than O(VELOGV) for largegraphs insignificcant 
+#if graph is dense than E = V2 and becomes O(V3LOGV)
+#IF SPARSE then E = O(V) so then O(V2 LOGV)
+#using heap is O(logn)
+def allPairsPositive(graph : Graph) -> tuple[list[list[float]], list[list[int]]]: 
+    numNodes = graph.number_of_nodes()
+    dist_matrix = [[math.inf for _ in range(numNodes)] for _ in range(numNodes)] #initalize inf as distance in 2d matrix
+    pred_matrix = [[i if i == j else -1 for j in range(numNodes)] for i in range(numNodes)] #same thing here but -1 fpr predecsor (no predeccors)
+    #O(v^2) to make each 
 
-def dijkstra(graph):
-    return 
+
+
+    result = tuple[list[list[int]], list[list[int]]]
+    for startNode in range(numNodes):
+        weightsIteration, predecessorsIteration = dijkstra(graph, startNode)
+        for node in range(numNodes):
+            dist_matrix[startNode][node] = weightsIteration[node]
+            pred_matrix[startNode][node] = predecessorsIteration[node]
+    return dist_matrix, pred_matrix
+
+def dijkstra(g  : Graph, startNode):
+    numNodes = g.number_of_nodes()
+    visited = set()
+    predecessors = [-1] * numNodes
+    dist =  [math.inf] * numNodes
     
+    dist[startNode] = 0 #start node is 0 away from itself
+
+
+
+    #create min pq that has tuples of (distacne, node) since heapq treats the firs telemtm of tuple as key for ordering 
+    min_pq = []
+    heapq.heappush(min_pq,(0,startNode))
+
+
+    while min_pq:
+        curr_dist, node = heapq.heappop(min_pq)
+
+        if node not in visited: 
+            visited.add(node)
+            #relax all neighbours
+            for neighbour in g.connected_nodes(node):
+                if neighbour not in visited:
+                    neighbourWeight = g.weight[(node, neighbour)]
+                    test_dist = curr_dist + neighbourWeight
+                    if test_dist < dist[neighbour]:
+                        dist[neighbour] = test_dist
+                        predecessors[neighbour] = node
+                        heapq.heappush(min_pq, (test_dist, neighbour))
+        else: 
+            continue
+    #add to make the paretn predecrrso itsefl for the node were at 
+    predecessors[startNode] = startNode
+    return dist, predecessors
+
+
+
 
 
 #uses bellman ford approach
-def allPairsNegative(graph):
+def allPairsNegativeBellman(graph : Graph):
     #check v times and if on vth run we can relax, then there is a negatice cycle and no shortest path 
-    return 
+    numNodes = graph.number_of_nodes()
+    dist_matrix = [[math.inf for _ in range(numNodes)] for _ in range(numNodes)] #initalize inf as distance in 2d matrix
+    pred_matrix = [[i if i == j else -1 for j in range(numNodes)] for i in range(numNodes)] #same thing here but -1 fpr predecsor (no predeccors)
+    #O(v^2) to make each 
 
-#uses bellman ford approach
-def allPairsNegative(graph):
-    #check v times and if on vth run we can relax, then there is a negatice cycle and no shortest path 
-    #TODO init distance matrix
 
-    for i in range(v):
-        for j in range(v):
-            for k in range(v):
-                relax(...)
+
+    for startNode in range(numNodes):
+        weightsIteration, predecessorsIteration = bellmanFord(graph, startNode)
+        for node in range(numNodes):
+            dist_matrix[startNode][node] = weightsIteration[node]
+            pred_matrix[startNode][node] = predecessorsIteration[node]
+    return dist_matrix, pred_matrix
+
+
+
+def bellmanFord(graph: Graph, startNode):
+    numNodes = graph.number_of_nodes()
+    dist = [math.inf] * numNodes
+    dist[startNode] = 0
+    predecessors = [-1] * numNodes
+
+    #relax every edgfe v-1 times
+    for i in range(numNodes):
+        for currNode in range(numNodes):
+            for neighbour in graph.connected_nodes(currNode):
+                weight = graph.weight[(currNode, neighbour)]
+                if dist[currNode] != math.inf and dist[currNode] + weight < dist[neighbour]:
+                    if i == numNodes -1:
+                        return [-1] #found neg cycle
+                    else:
+                        dist[neighbour] = dist[currNode] + weight
+                        predecessors[neighbour] = currNode
+    predecessors[startNode] = startNode
+
+
+    return dist, predecessors
+
+
+
+
+test = generate_random_graph(5, 19)
+print("this is the adjacey matruix\n",test.get_graph())
+print("these are the weights\n",test.get_weights())
+
+
+print("this is dijstra\n",dijkstra(test, 4))
+print("this is bellman\n", bellmanFord(test, 4))
+print("\nthis is all pairs postive",allPairsPositive(test))
+print("\nthis is all pairs postive",allPairsNegativeBellman(test))
+
+
+
+
+
+#the unknown function from lab 3 is the floys warshall algorthm 
+#it handles computing all pairs shortest path and can deal with negative weights, we could also do this 
+def allPairsNegativeFloyd(graph : Graph):
     
+    #taking from lab 3
+    def unknown(graph1 : Graph):
+        n = graph1.number_of_nodes() #num of nodes
+        for k in range(n):
+            for i in range(n):  # we are iteratinf over all pairs of nodes (i,j)
+                for j in range(n):
+                    if graph1[i][j] > graph1[i][k] + graph1[k][j]:  #if path from i to j thru k is shorter then update d[i][j] with k
+                        graph1[i][j] = graph1[i][k] + graph1[k][j]
+        return graph1
 
-#test
+    return unknown(graph)
+
+
+#O(V3) time
+#O(v2) space 
