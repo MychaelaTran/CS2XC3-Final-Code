@@ -75,7 +75,7 @@ def generate_random_graphNeg(nodes, edges):
     edges_have = set()
     while len(edges_have) < edges:
         u, v = random.sample(range(nodes), 2)  #picks 2 distinct nodes
-        weight = random.randint(-20, 100) #have negative numbers we can choose form, make it from -20,100 since I still want more postive weights than negative 
+        weight = random.randint(-20, 80) #have negative numbers we can choose form, make it from -20,100 since I still want more postive weights than negative 
         if (u, v) not in edges_have:
             G.add_edge(u, v, weight)
             edges_have.add((u, v))
@@ -159,6 +159,11 @@ def allPairsNegativeBellman(graph : Graph):
 
     for startNode in range(numNodes):
         weightsIteration, predecessorsIteration = bellmanFord(graph, startNode)
+        print(weightsIteration)
+        print(predecessorsIteration)
+        if (weightsIteration, predecessorsIteration) == ([-1000000000],[-1000000000]):
+            print("GRaph has negative cycle")
+            return 
         for node in range(numNodes):
             dist_matrix[startNode][node] = weightsIteration[node]
             pred_matrix[startNode][node] = predecessorsIteration[node]
@@ -173,13 +178,14 @@ def bellmanFord(graph: Graph, startNode):
     predecessors = [-1] * numNodes
 
     #relax every edgfe v-1 times
-    for i in range(numNodes):
+    for i in range(numNodes + 1):
         for currNode in range(numNodes):
             for neighbour in graph.connected_nodes(currNode):
                 weight = graph.weight[(currNode, neighbour)]
                 if dist[currNode] != math.inf and dist[currNode] + weight < dist[neighbour]:
-                    if i == numNodes -1:
-                        return [-1] #found neg cycle
+                    if i == numNodes:
+                        print("neg ccle")
+                        return [-1000000000],[-1000000000] #found neg cycle
                     else:
                         dist[neighbour] = dist[currNode] + weight
                         predecessors[neighbour] = currNode
@@ -192,14 +198,15 @@ def bellmanFord(graph: Graph, startNode):
 
 
 test = generate_random_graphPos(5, 19)
-print("this is the adjacey matruix\n",test.get_graph())
-print("these are the weights\n",test.get_weights())
+test1 = generate_random_graphNeg(5,12)
+print("this is the adjacey matruix\n",test1.get_graph())
+print("these are the weights\n",test1.get_weights())
 
 
-print("this is dijstra\n",dijkstra(test, 4))
-print("this is bellman\n", bellmanFord(test, 4))
-print("\nthis is all pairs postive",allPairsPositive(test))
-print("\nthis is all pairs postive",allPairsNegativeBellman(test))
+#print("this is dijstra\n",dijkstra(test, 4))
+print("this is bellman\n", bellmanFord(test1, 4))
+#print("\nthis is all pairs postive",allPairsPositive(test))
+print("\nthis is all pairs Bellamn",allPairsNegativeBellman(test1))
 
 
 
