@@ -50,7 +50,7 @@ class Graph():
     def get_weights(self,): 
         return self.weight
 
-def generate_random_graph(nodes, edges):
+def generate_random_graphPos(nodes, edges):
     #makes random weighted graph thats underircted 
     G = Graph(nodes)
 
@@ -59,6 +59,23 @@ def generate_random_graph(nodes, edges):
     while len(edges_have) < edges:
         u, v = random.sample(range(nodes), 2)  #picks 2 distinct nodes
         weight = random.randint(1, 100)
+        if (u, v) not in edges_have:
+            G.add_edge(u, v, weight)
+            edges_have.add((u, v))
+
+
+    return G
+
+
+def generate_random_graphNeg(nodes, edges):
+    #makes random weighted graph thats underircted 
+    G = Graph(nodes)
+
+
+    edges_have = set()
+    while len(edges_have) < edges:
+        u, v = random.sample(range(nodes), 2)  #picks 2 distinct nodes
+        weight = random.randint(-20, 100) #have negative numbers we can choose form, make it from -20,100 since I still want more postive weights than negative 
         if (u, v) not in edges_have:
             G.add_edge(u, v, weight)
             edges_have.add((u, v))
@@ -174,7 +191,7 @@ def bellmanFord(graph: Graph, startNode):
 
 
 
-test = generate_random_graph(5, 19)
+test = generate_random_graphPos(5, 19)
 print("this is the adjacey matruix\n",test.get_graph())
 print("these are the weights\n",test.get_weights())
 
