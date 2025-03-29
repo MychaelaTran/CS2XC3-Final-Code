@@ -148,7 +148,8 @@ def dijkstra(g  : Graph, startNode):
 
 
 #uses bellman ford approach
-def allPairsNegativeBellman(graph : Graph):
+#returns this when neg cycle found ([-1000000000], [-1000000000]), GRaph has negative cycle
+def allPairsNegative(graph : Graph):
     #check v times and if on vth run we can relax, then there is a negatice cycle and no shortest path 
     numNodes = graph.number_of_nodes()
     dist_matrix = [[math.inf for _ in range(numNodes)] for _ in range(numNodes)] #initalize inf as distance in 2d matrix
@@ -159,7 +160,6 @@ def allPairsNegativeBellman(graph : Graph):
 
     for startNode in range(numNodes):
         weightsIteration, predecessorsIteration = bellmanFord(graph, startNode)
-        print("fhsjfskgfsgk", bellmanFord(graph, startNode))
         if (weightsIteration, predecessorsIteration) == ([-1000000000],[-1000000000]):
             print("Graph has negative cycle")
             return 
@@ -170,34 +170,36 @@ def allPairsNegativeBellman(graph : Graph):
 
 
 
-def bellmanFord(graph: Graph, startNode):
+def bellmanFord(graph, startNode):
     numNodes = graph.number_of_nodes()
     dist = [math.inf] * numNodes
     dist[startNode] = 0
     predecessors = [-1] * numNodes
 
-    #relax every edgfe v-1 times
-    for i in range(numNodes + 1):
+    #relax every edge v-1 times
+    for i in range(numNodes):
         for currNode in range(numNodes):
             for neighbour in graph.connected_nodes(currNode):
                 weight = graph.weight[(currNode, neighbour)]
                 if dist[currNode] != math.inf and dist[currNode] + weight < dist[neighbour]:
-                    if i == numNodes:
-                        print("neg cycle")
-                        return [-1000000000],[-1000000000] #found neg cycle
-                    else:
-                        dist[neighbour] = dist[currNode] + weight
-                        predecessors[neighbour] = currNode
+                    dist[neighbour] = dist[currNode] + weight
+                    predecessors[neighbour] = currNode
+
+    # one more iteration to check for neg weight cycles
+    for currNode in range(numNodes):
+        for neighbour in graph.connected_nodes(currNode):
+            weight = graph.weight[(currNode, neighbour)]
+            if dist[currNode] != math.inf and dist[currNode] + weight < dist[neighbour]:
+                return [-1000000000], [-1000000000]  # neg cycle founf
+
     predecessors[startNode] = startNode
-
-
     return dist, predecessors
 
 
 
 
 test = generate_random_graphPos(5, 19)
-test1 = generate_random_graphNeg(5,20)
+test1 = generate_random_graphNeg(5,18)
 print("this is the adjacey matruix\n",test1.get_graph())
 print("these are the weights\n",test1.get_weights())
 
