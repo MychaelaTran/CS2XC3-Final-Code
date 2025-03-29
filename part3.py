@@ -159,10 +159,9 @@ def allPairsNegativeBellman(graph : Graph):
 
     for startNode in range(numNodes):
         weightsIteration, predecessorsIteration = bellmanFord(graph, startNode)
-        print(weightsIteration)
-        print(predecessorsIteration)
+        print("fhsjfskgfsgk", bellmanFord(graph, startNode))
         if (weightsIteration, predecessorsIteration) == ([-1000000000],[-1000000000]):
-            print("GRaph has negative cycle")
+            print("Graph has negative cycle")
             return 
         for node in range(numNodes):
             dist_matrix[startNode][node] = weightsIteration[node]
@@ -184,7 +183,7 @@ def bellmanFord(graph: Graph, startNode):
                 weight = graph.weight[(currNode, neighbour)]
                 if dist[currNode] != math.inf and dist[currNode] + weight < dist[neighbour]:
                     if i == numNodes:
-                        print("neg ccle")
+                        print("neg cycle")
                         return [-1000000000],[-1000000000] #found neg cycle
                     else:
                         dist[neighbour] = dist[currNode] + weight
@@ -198,7 +197,7 @@ def bellmanFord(graph: Graph, startNode):
 
 
 test = generate_random_graphPos(5, 19)
-test1 = generate_random_graphNeg(5,12)
+test1 = generate_random_graphNeg(5,20)
 print("this is the adjacey matruix\n",test1.get_graph())
 print("these are the weights\n",test1.get_weights())
 
