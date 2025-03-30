@@ -177,7 +177,7 @@ def bellmanFord(graph, startNode):
     predecessors = [-1] * numNodes
 
     #relax every edge v-1 times
-    for i in range(numNodes):
+    for i in range(numNodes -1):
         for currNode in range(numNodes):
             for neighbour in graph.connected_nodes(currNode):
                 weight = graph.weight[(currNode, neighbour)]
