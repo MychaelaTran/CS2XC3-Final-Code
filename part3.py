@@ -95,17 +95,18 @@ def generate_random_graphNeg(nodes, edges):
 def allPairsPositive(graph : Graph) -> tuple[list[list[float]], list[list[int]]]: 
     numNodes = graph.number_of_nodes()
     dist_matrix = [[math.inf for _ in range(numNodes)] for _ in range(numNodes)] #initalize inf as distance in 2d matrix
-    pred_matrix = [[i if i == j else -1 for j in range(numNodes)] for i in range(numNodes)] #same thing here but -1 fpr predecsor (no predeccors)
+    pred_matrix = [ [-1] * numNodes for _ in range(numNodes) ] #same thing here but -1 fpr predecsor (no predeccors)
     #O(v^2) to make each 
 
-
-
-    result = tuple[list[list[int]], list[list[int]]]
-    for startNode in range(numNodes):
-        weightsIteration, predecessorsIteration = dijkstra(graph, startNode)
-        for node in range(numNodes):
-            dist_matrix[startNode][node] = weightsIteration[node]
-            pred_matrix[startNode][node] = predecessorsIteration[node]
+    #run single soure disjstra on every ndoe
+    for u in range(numNodes):
+        dist_from_u, pred_from_u = dijkstra(graph, u)
+        
+        #update matrices
+        for v in range(numNodes):
+            dist_matrix[u][v] = dist_from_u[v]
+            pred_matrix[u][v] = pred_from_u[v]
+    
     return dist_matrix, pred_matrix
 
 def dijkstra(g  : Graph, startNode):
@@ -202,33 +203,7 @@ test = generate_random_graphPos(5, 19)
 test1 = generate_random_graphNeg(5,18)
 print("this is the adjacey matruix\n",test1.get_graph())
 print("these are the weights\n",test1.get_weights())
+slay = allPairsNegative(test1)
+print("asnwer", slay)
 
 
-#print("this is dijstra\n",dijkstra(test, 4))
-print("this is bellman\n", bellmanFord(test1, 4))
-#print("\nthis is all pairs postive",allPairsPositive(test))
-print("\nthis is all pairs Bellamn",allPairsNegativeBellman(test1))
-
-
-
-
-
-#the unknown function from lab 3 is the floys warshall algorthm 
-#it handles computing all pairs shortest path and can deal with negative weights, we could also do this 
-def allPairsNegativeFloyd(graph : Graph):
-    
-    #taking from lab 3
-    def unknown(graph1 : Graph):
-        n = graph1.number_of_nodes() #num of nodes
-        for k in range(n):
-            for i in range(n):  # we are iteratinf over all pairs of nodes (i,j)
-                for j in range(n):
-                    if graph1[i][j] > graph1[i][k] + graph1[k][j]:  #if path from i to j thru k is shorter then update d[i][j] with k
-                        graph1[i][j] = graph1[i][k] + graph1[k][j]
-        return graph1
-
-    return unknown(graph)
-
-
-#O(V3) time
-#O(v2) space 
