@@ -44,6 +44,7 @@ class Graph():
                 total += self.weight[(node1, node2)]
 
         return total
+    
     def get_graph(self,):
         return self.graph
     
@@ -199,11 +200,11 @@ def bellmanFord(graph, startNode):
 
 
 
-test = generate_random_graphPos(5, 19)
-test1 = generate_random_graphNeg(5,18)
-print("this is the adjacey matruix\n",test1.get_graph())
-print("these are the weights\n",test1.get_weights())
-slay = allPairsNegative(test1)
-print("asnwer", slay)
+# test = generate_random_graphPos(5, 19)
+# test1 = generate_random_graphNeg(5,18)
+# print("this is the adjacey matruix\n",test1.get_graph())
+# print("these are the weights\n",test1.get_weights())
+# slay = allPairsNegative(test1)
+# print("asnwer", slay)
 
 

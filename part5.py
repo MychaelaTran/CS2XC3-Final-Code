@@ -1,4 +1,5 @@
 import heapq
+from part3 import Graph
 from part4 import a_star
 import csv
 import math
@@ -49,16 +50,16 @@ def read_stations():
             station_pos[station_id] = (lat, lon)
             station_names[station_id] = name
 
-    return station_pos, station_names
+    return station_pos
 
 
-# slay1 = read_stations()
-# print(slay1)
+#slay1 = read_stations()
+#print(slay1)
 
 def read_connections():
     #read the connections (edges) and we return a list a lsit of (st 1, st2, time)
     
-    connected_stations = []
+    connected_stations = {}
     with open("london_connections.csv", 'r') as file: 
         csvreader = csv.DictReader(file) 
         next(csvreader)
@@ -66,13 +67,32 @@ def read_connections():
             st1 = int(row["station1"])
             st2 = int(row["station2"])
             time = int(row["time"])
-            connected_stations.append((st1, st2, time))
+            connected_stations[(st1,st2)] = time
     return connected_stations
 
-slay2 = read_connections()
-print(slay2)
 
+
+
+def euclidean_dist(station_a, station_b, station_pos):
+    (lat1, lon1) = station_pos[station_a]
+    (lat2, lon2) = station_pos[station_b]
+    return math.sqrt((lat1 - lat2)**2 + (lon1 - lon2)**2)
 
 def london_graph(station_pos, connected_stations):
-    #build
-    return 
+    num_stations = len(station_pos)
+    G = Graph(num_stations)
+    
+    for (st1, st2) in connected_stations:
+        if st1 in station_pos and st2 in station_pos:
+            #find eucidean distacne to get the edge weighth 
+            dist = euclidean_dist(st1, st2, station_pos)
+            G.add_edge(st1, st2, dist)
+
+    return G
+
+connections = read_connections()
+stations = read_stations()
+
+test = london_graph(stations, connections)
+print("this is test", test.graph)
+print("this is wegith", test.weight)
