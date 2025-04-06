@@ -1,6 +1,7 @@
 import heapq
 from part3 import Graph
 import csv
+from part3 import dijkstra
 from part4 import a_star
 import time
 import random
@@ -98,7 +99,7 @@ def london_graph(station_pos, connected_stations):
 
 
 #dijstra with end node and constructing path to node back import heapq
-def dijkstra(graph, source, destination):
+def dijkstra2(graph, source, destination):
     adjacency = graph.get_graph()
     weights = graph.get_weights()
 
@@ -144,8 +145,8 @@ def dijkstra(graph, source, destination):
     return predecessor, path
 
 
-
-def experiment(graph: Graph, station_pos):
+#this experiemtn computes using the dijstra that has the src and destination and acts liek a* where dones one trialk per src,node pair
+def experiment1(graph: Graph, station_pos):
     num_nodes = graph.number_of_nodes()
 
     #dicts are of the form where the key = (src, dest) and  value = time taken
@@ -166,7 +167,7 @@ def experiment(graph: Graph, station_pos):
 
             #dijstra times
             start_d = time.time()
-            dijkstra(graph, src, dest) 
+            dijkstra2(graph, src, dest) 
             end_d = time.time()
             total_time_d = end_d - start_d
             dijkstra_times[(src, dest)] = total_time_d
@@ -182,6 +183,8 @@ def experiment(graph: Graph, station_pos):
     return dijkstra_times, a_star_times
 
 
+
+#hoenstly ridculous function bc there are so many iterations, made then didnt really use 
 def plot_all_pair_timings(dijkstra_times, a_star_times):
     #keep consisten order
     all_pairs = sorted(dijkstra_times.keys())
@@ -207,7 +210,44 @@ def plot_all_pair_timings(dijkstra_times, a_star_times):
     plt.tight_layout()
     plt.show()
 
-def compare_algorithms_runtime(dijkstra_times, a_star_times):
+
+def experiment2(graph: Graph, station_pos):
+    num_nodes = graph.number_of_nodes()
+    dijkstra_times = [None for _ in range(num_nodes)]
+    a_star_times   = [None for _ in range(num_nodes)]
+    #compute heuristic to use so dont have to make everytime
+    all_heuristics = {dest: build_heuristic_dict(station_pos, dest) for dest in range(num_nodes) }
+
+    for src in range(num_nodes):
+        #disjtra has single run for all src,dest pairs per src node
+        start = time.time()
+        dijkstra(graph, src)
+        end = time.time()
+        dijkstra_times[src] = end - start
+
+        #a start needs one run per node from src
+        total_astar_time = 0
+        for dest in range(num_nodes):
+            if src == dest:
+                continue
+            heuristic = all_heuristics[dest]
+            start_a = time.time()
+            a_star(graph, src, dest, heuristic)
+            end_a = time.time()
+            #add each time per src,dest
+            total_astar_time += (end_a - start_a)
+        #add final time for all src to dst per src
+        a_star_times[src] = total_astar_time
+
+        print(f"src {src}: dijkstra tim = {dijkstra_times[src]:.6f}s, a start total time = {a_star_times[src]:.6f}s")
+
+    return dijkstra_times, a_star_times
+
+
+
+
+#for all (src,dst) we have one count
+def compare_algorithms_runtime1(dijkstra_times, a_star_times):
     total_pairs = len(dijkstra_times)
     total_dijkstra_time = 0
     total_astar_time = 0
@@ -240,14 +280,46 @@ def compare_algorithms_runtime(dijkstra_times, a_star_times):
     return
 
 
+#for all src we have one count
+def compare_algorithms_runtime2(dijkstra_times, a_star_times):
+    total_srcs = len(dijkstra_times)
+    total_dijkstra_time = sum(dijkstra_times)
+    total_astar_time = sum(a_star_times)
 
+    dijkstra_faster_count = 0
+    astar_faster_count = 0
+
+    for i in range(total_srcs):
+        d_time = dijkstra_times[i]
+        a_time = a_star_times[i]
+
+        if d_time < a_time:
+            dijkstra_faster_count += 1
+        elif a_time < d_time:
+            astar_faster_count += 1
+
+    avg_dijkstra_time = total_dijkstra_time / total_srcs
+    avg_astar_time = total_astar_time / total_srcs
+
+    print(f"\navg dijk time2: {avg_dijkstra_time:.9f} s")
+    print(f"avg a star time2:       {avg_astar_time:.9f} s\n")
+    print(f"dijkstra was faster in :{dijkstra_faster_count} times")
+    print(f"a start was faster in:  {astar_faster_count} times")
+
+
+
+
+#here is good result data to use and see
 station_pos, id_to_index = read_stations()
 connections = read_connections(id_to_index)
 graph = london_graph(station_pos, connections)
 
-dijkstra_times, a_star_times = experiment(graph, station_pos)
-print(dijkstra_times)
-# compare_algorithms_runtime(dijkstra_times, a_star_times)
+# dijkstra_times, a_star_times = experiment1(graph, station_pos)
+# dijkstra_times1, a_star_times1 = experiment2(graph, station_pos)
+
+# compare_algorithms_runtime1(dijkstra_times, a_star_times)
+# compare_algorithms_runtime2(dijkstra_times1, a_star_times1)
+
 #plot_all_pair_timings(dijkstra_times, a_star_times)
 
 
@@ -278,9 +350,11 @@ def lines_used_in_path(path, line_map):
         u, v = path[i], path[i + 1]
         if (u, v) in line_map:
             used_lines.add(line_map[(u, v)])
+        elif (v, u) in line_map:
+            used_lines.add(line_map[(v, u)])
     return used_lines
 
-import random
+
 
 def experiment_random_paths_with_lines(graph, station_pos, line_map, num_trials=30):
     num_nodes = graph.number_of_nodes()
@@ -297,7 +371,7 @@ def experiment_random_paths_with_lines(graph, station_pos, line_map, num_trials=
             continue
 
         #get the time for each path 
-        _, path = dijkstra(graph, src, dest)
+        _, path = dijkstra2(graph, src, dest)
         #get the number of lines used/ transfers and which linse 
         lines_used = lines_used_in_path(path, line_map)
         #add all data to results as dicts per list item
@@ -306,7 +380,7 @@ def experiment_random_paths_with_lines(graph, station_pos, line_map, num_trials=
 
     return results
 
-#build the line map to see
+# #build the line map to see
 line_map = build_line_map(id_to_index)
 #print results 
 results = experiment_random_paths_with_lines(graph, station_pos, line_map)
@@ -316,4 +390,6 @@ for iteration in results:
 
 
 
-
+#treat if there is a path from a-b then there is same path from b-a in normal subway
+#professor said this is okay
+#but i dont actually add it in our graph we build bc it says to make it directed but in terms of lines adjacent we count both ways like this 
