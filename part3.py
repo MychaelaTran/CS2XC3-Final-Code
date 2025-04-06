@@ -26,9 +26,10 @@ class Graph():
         self.graph[len(self.graph)] = []
 
     def add_edge(self, node1, node2, weight):
-        if node1 not in self.graph[node2]:
+        if node2 not in self.graph[node1]:
             self.graph[node1].append(node2)
             self.weight[(node1, node2)] = weight
+
 
 
     def number_of_nodes(self,):
