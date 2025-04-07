@@ -7,7 +7,7 @@ import time
 import random
 import matplotlib.pyplot as plt
 import numpy as np
-import math
+from math import radians, cos, sin, asin, sqrt
 #a* doesnt make sense only desisnged single src single dest
 #doesjt make sense other context bc if explore all nodes, then same as disjtra, it explores all paths
 #just ends up adding everything to find all paths     
@@ -24,6 +24,7 @@ def read_stations():
     station_pos = {}
     with open("london_stations.csv", 'r') as file: 
         csvreader = csv.DictReader(file)
+        #skip the first line of the indicators
         next(csvreader) 
         for row in csvreader:
             station_id = int(row["id"])
@@ -32,10 +33,13 @@ def read_stations():
             station_pos[station_id] = (lat, lon)
 
     #i create a mappinf from the station ids to an indexed number in order 
+    #use enumerate to create a dcit that maps each stations original id to a new contiguous index
+    #do this bc the stattio  ids are not sequential, since 189 is missing 
     station_ids = sorted(station_pos.keys())
     id_to_index = {station_id: index for index, station_id in enumerate(station_ids)}
 
-    #cfeate new station pos using our new indeices 
+    #cfeate new station pos using our new indeices
+    #to maje sure that when i iterate from 0 to the number of stations we cover all stsatuons even if the og ids were not seqentual 
     good_station = {id_to_index[station_id]: pos for station_id, pos in station_pos.items()}
     return good_station, id_to_index
 
@@ -53,28 +57,41 @@ def read_connections(id_to_index):
         for row in csvreader:
             st1 = int(row["station1"])
             st2 = int(row["station2"])
+            line = int(row["line"])  
             time_val = int(row["time"])
 
             #need to mao the station to its index
             if st1 in id_to_index and st2 in id_to_index:
-                connected_stations[(id_to_index[st1], id_to_index[st2])] = time_val
+                connected_stations[(id_to_index[st1], id_to_index[st2])] = line
     return connected_stations
 
 
-def euclidean_dist(station_a, station_b, station_pos):
-    (lat1, lon1) = station_pos[station_a]
-    (lat2, lon2) = station_pos[station_b]
-    return math.sqrt((lat1 - lat2)**2 + (lon1 - lon2)**2)
+#use haversine formula for lattitude longituude
+def haversine(stationa, stationb, station_pos):
+    (lat1, lon1) = station_pos[stationa]
+    (lat2, lon2) = station_pos[stationb]
+
+    # convert decimal degrees to radians 
+    lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+    # haversine formula 
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a)) 
+    r = 6371 
+    return c * r
+#returns the distance between the two points in kilometers
+
+
 
 #Therefore, you can create a hashmap or a function, which serves
 #as a heuristic function for A*, takes the input as a given station and returns the distance between
 #source and the given station. 
 def build_heuristic_dict(station_pos, dest):
     #this dict is  station_id : euclidean distance from station to dest
-    dest_lat, dest_lon = station_pos[dest]
     heuristic_dict = {}
-    for st_id, (lat, lon) in station_pos.items():
-        heuristic_dict[st_id] = math.sqrt((lat - dest_lat)**2 + (lon - dest_lon)**2)
+    for st_id in station_pos:
+        heuristic_dict[st_id] = haversine(st_id, dest, station_pos)
     return heuristic_dict
 
 
@@ -82,20 +99,27 @@ def build_heuristic_dict(station_pos, dest):
 def london_graph(station_pos, connected_stations):
     num_stations = len(station_pos)
     G = Graph(num_stations)
-    
-    for (st1, st2) in connected_stations:
+    edge_lines = {}
+
+    for (st1, st2), line in connected_stations.items():
         if st1 in station_pos and st2 in station_pos:
-            #find eucidean distacne to get the edge weighth 
-            dist = euclidean_dist(st1, st2, station_pos)
-            G.add_edge(st1, st2, dist)
+            dist = haversine(st1, st2, station_pos)
+            G.add_edge(st1, st2, dist) 
+            G.add_edge(st2, st1, dist) #undirected graph 
+            #add the line this is on 
+            edge_lines[(st1, st2)] = connected_stations[st1,st2]
+            edge_lines[(st2, st1)] = connected_stations[st1,st2]
 
-    return G
+    return G, edge_lines
 
 
 
-#test = london_graph(stations, connections)
-#print("this is test", test.graph)
-#print("this is wegith", test.weight)
+stations, index = read_stations()
+connections =  read_connections(index)
+# test, edges = london_graph(stations, connections)
+# # print("this is test", test.graph)
+# # print("this is wegith", test.weight)
+# print("this is line connections",edges)
 
 
 #dijstra with end node and constructing path to node back import heapq
@@ -155,7 +179,10 @@ def experiment1(graph: Graph, station_pos):
 
     for src in range(num_nodes):
         #do hesuristic for all nodes one time 
-        all_heuristics = { dest: build_heuristic_dict(station_pos, dest) for dest in range(num_nodes) }
+        all_heuristics = {}
+        for dest in range(num_nodes):
+            heuristic = build_heuristic_dict(station_pos, dest)
+            all_heuristics[dest] = heuristic
         #all_heursitics[1][2] would be the euclid distance from node 2-1
         #since our build heusristic func makes a dictof a node as a key and its distance to dest
         #since fn = gn + hn since hn is cost from a node to our dest
@@ -182,50 +209,78 @@ def experiment1(graph: Graph, station_pos):
 
     return dijkstra_times, a_star_times
 
+def run_experiment1():
+    #get our data 
+    station_pos, id_to_index = read_stations()
+    connections = read_connections(id_to_index)
+    #create oir graph, using our haversine
+    graph, edges = london_graph(station_pos, connections)
 
+    #run experiment1 that computes for all src dst pairs
+    dijkstra_times, a_star_times = experiment1(graph, station_pos)
+    
+    #avg time over all src dest pairs 
+    total_d_time = sum(dijkstra_times[x] for x in dijkstra_times)
+    total_a_time = sum(a_star_times[x] for x in a_star_times)
+    total_pairs = len(dijkstra_times) #just choose one bc dijstra and a star would be same length bc same trial 
+    avg_d = total_d_time / total_pairs
+    avg_a = total_a_time / total_pairs
+    print(f"avg disktra time: {avg_d:.9f} s")
+    print(f"avg a star time: {avg_a:.9f} s")
 
-#hoenstly ridculous function bc there are so many iterations, made then didnt really use 
-def plot_all_pair_timings(dijkstra_times, a_star_times):
-    #keep consisten order
-    all_pairs = sorted(dijkstra_times.keys())
+    #number of trials each was faster in
+    dijkstra_faster = sum(1 for pair in dijkstra_times if dijkstra_times[pair] < a_star_times[pair])
+    astar_faster = sum(1 for pair in dijkstra_times if a_star_times[pair] < dijkstra_times[pair])
+    print(f"disjtra was faster in {dijkstra_faster} pairs")
+    print(f"a start was faster in {astar_faster} pairs")
 
-    dijkstra_vals = [dijkstra_times[pair] for pair in all_pairs]
-    a_star_vals   = [a_star_times[pair] for pair in all_pairs]
+    #matplotlib
+    d_times = [dijkstra_times[pair] for pair in sorted(dijkstra_times)]
+    a_times = [a_star_times[pair] for pair in sorted(a_star_times)]
+    x = np.arange(len(d_times))
 
-    X_axis = np.arange(len(all_pairs))
-    width = 0.4
+    plt.figure(figsize=(14, 6))
 
-    plt.figure(figsize=(20, 6)) 
-    plt.bar(X_axis - width / 2, dijkstra_vals, width, label="Dijkstra", color="skyblue")
-    plt.bar(X_axis + width / 2, a_star_vals, width, label="A*", color="salmon")
+    #plot the taller bar first, then the shorter bar over the talelr one so we can see both
+    for i in range(len(x)):
+        d = d_times[i]
+        a = a_times[i]
+        if d > a:
+            plt.bar(x[i], d, color='skyblue', width=1)
+            plt.bar(x[i], a, color='salmon', width=1)
+        else:
+            plt.bar(x[i], a, color='salmon', width=1)
+            plt.bar(x[i], d, color='skyblue', width=1)
 
-    #only show x ticks every 10,000th pair to reduce the messienss
-    tick_step = max(len(X_axis) // 10, 1)
-    tick_labels = [f"{src}->{dest}" for (src, dest) in all_pairs]
-    plt.xticks(X_axis[::tick_step], tick_labels[::tick_step], rotation=45, fontsize=7)
-    plt.xlabel("(src, dest) pair")
-    plt.ylabel("time in seconds")
-    plt.title("Dijkstra vs A* Timing for Each (src, dst) Pair")
-    plt.legend()
+    plt.xticks([], [])
+    plt.xlabel("Iterations")
+    plt.ylabel("Time (seconds)")
+    plt.title("Dijkstra vs A* for All Pairs -  (src,dst)")
     plt.tight_layout()
     plt.show()
 
 
+# run_experiment1()
+
+
 def experiment2(graph: Graph, station_pos):
     num_nodes = graph.number_of_nodes()
+    #instead of 300x300 times, we only have 300, calclate time for single source shortest path to all ndoes, so run on each node 
     dijkstra_times = [None for _ in range(num_nodes)]
     a_star_times   = [None for _ in range(num_nodes)]
     #compute heuristic to use so dont have to make everytime
     all_heuristics = {dest: build_heuristic_dict(station_pos, dest) for dest in range(num_nodes) }
 
     for src in range(num_nodes):
-        #disjtra has single run for all src,dest pairs per src node
+        #disjtra has single run 
+        #since dijstra alr computes sinlge src shortest path to all pther nodes, just calculate its time 
         start = time.time()
         dijkstra(graph, src)
         end = time.time()
         dijkstra_times[src] = end - start
 
-        #a start needs one run per node from src
+        #a star needs one run per node from src
+        #then add the time 
         total_astar_time = 0
         for dest in range(num_nodes):
             if src == dest:
@@ -239,12 +294,45 @@ def experiment2(graph: Graph, station_pos):
         #add final time for all src to dst per src
         a_star_times[src] = total_astar_time
 
-        print(f"src {src}: dijkstra tim = {dijkstra_times[src]:.6f}s, a start total time = {a_star_times[src]:.6f}s")
-
     return dijkstra_times, a_star_times
 
+ 
+def run_experiment2():
+    #grab data
+    station_pos, id_to_index = read_stations()
+    connections = read_connections(id_to_index)
+    graph, lines = london_graph(station_pos, connections)
+
+    #run exp2
+    dijkstra_times, a_star_times = experiment2(graph, station_pos)
+
+    #averages
+    num_nodes = len(dijkstra_times)
+    avg_d = sum(dijkstra_times) / num_nodes
+    avg_a = sum(a_star_times) / num_nodes
+    print(f"avg disktra time: {avg_d:.9f} s")
+    print(f"avg a star time: {avg_a:.9f} s")
+
+    #count how many were faster 
+    dijkstra_faster = sum(1 for i in range(num_nodes) if dijkstra_times[i] < a_star_times[i])
+    astar_faster = sum(1 for i in range(num_nodes) if a_star_times[i] < dijkstra_times[i])
+    print(f"disjtra was faster in {dijkstra_faster} srcs")
+    print(f"a start was faster in {astar_faster} srcs")
+
+    #MATPLOTLIB
+    x = range(num_nodes)
+    plt.figure(figsize=(12, 6))
+    plt.plot(x, dijkstra_times, label="Dijkstra", color="skyblue")
+    plt.plot(x, a_star_times, label="A*", color="salmon")
+    plt.xlabel("Source Node Index")
+    plt.ylabel("Total Time (seconds)")
+    plt.title("Dijkstra vs A* For Total Time per Source Node")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 
+#run_experiment2()
 
 #for all (src,dst) we have one count
 def compare_algorithms_runtime1(dijkstra_times, a_star_times):
@@ -309,18 +397,13 @@ def compare_algorithms_runtime2(dijkstra_times, a_star_times):
 
 
 
-#here is good result data to use and see
-station_pos, id_to_index = read_stations()
-connections = read_connections(id_to_index)
-graph = london_graph(station_pos, connections)
 
-# dijkstra_times, a_star_times = experiment1(graph, station_pos)
-# dijkstra_times1, a_star_times1 = experiment2(graph, station_pos)
 
-# compare_algorithms_runtime1(dijkstra_times, a_star_times)
-# compare_algorithms_runtime2(dijkstra_times1, a_star_times1)
 
-#plot_all_pair_timings(dijkstra_times, a_star_times)
+
+
+
+
 
 
 
@@ -380,12 +463,12 @@ def experiment_random_paths_with_lines(graph, station_pos, line_map, num_trials=
 
     return results
 
-# #build the line map to see
-line_map = build_line_map(id_to_index)
-#print results 
-results = experiment_random_paths_with_lines(graph, station_pos, line_map)
-for iteration in results:
-    print(f"{iteration['source']} → {iteration['destination']}, lines: {iteration['lines_used']}, transfers: {iteration['num_lines']}")
+# # #build the line map to see
+# line_map = build_line_map(id_to_index)
+# #print results 
+# results = experiment_random_paths_with_lines(graph, station_pos, line_map)
+# for iteration in results:
+#     print(f"{iteration['source']} → {iteration['destination']}, lines: {iteration['lines_used']}, transfers: {iteration['num_lines']}")
 
 
 
