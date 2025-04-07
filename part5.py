@@ -19,7 +19,7 @@ from math import radians, cos, sin, asin, sqrt
 #heruristic use the physical direct distance, not driving distance betweem the srouce adn a given station 
 #parameter is string name of csv station file name
 
-#WHY IS THE PROF ,MISSING STATIPN 189 I HAD TO CHNAGE MY WHOLE CODE IM DEAD AND LOSING MY MIND
+#WHY ARE WE MISSING STATIPN 189 I HAD TO CHNAGE MY WHOLE CODE IM DEAD AND LOSING MY MIND
 def read_stations():
     station_pos = {}
     with open("london_stations.csv", 'r') as file: 
@@ -44,9 +44,6 @@ def read_stations():
     return good_station, id_to_index
 
 
-
-# slay1 = read_stations()
-# print(slay1)
 
 
 def read_connections(id_to_index):
@@ -84,7 +81,7 @@ def haversine(stationa, stationb, station_pos):
 
 
 
-#Therefore, you can create a hashmap or a function, which serves
+#ASSIGNMENT:: Therefore, you can create a hashmap or a function, which serves
 #as a heuristic function for A*, takes the input as a given station and returns the distance between
 #source and the given station. 
 def build_heuristic_dict(station_pos, dest):
@@ -334,65 +331,104 @@ def run_experiment2():
 
 #run_experiment2()
 
-#for all (src,dst) we have one count
-def compare_algorithms_runtime1(dijkstra_times, a_star_times):
-    total_pairs = len(dijkstra_times)
-    total_dijkstra_time = 0
-    total_astar_time = 0
-    dijkstra_faster_count = 0
-    astar_faster_count = 0
 
-    for pair in dijkstra_times:
-        d_time = dijkstra_times[pair]
-        a_time = a_star_times[pair]
 
-        total_dijkstra_time += d_time
-        total_astar_time += a_time
 
-        #we ignore equal times
-        if d_time < a_time:
-            dijkstra_faster_count += 1
-        elif a_time < d_time:
-            astar_faster_count += 1
-        
 
-    avg_dijkstra_time = total_dijkstra_time / total_pairs
-    avg_astar_time = total_astar_time / total_pairs
 
-    print(f"avg dijk time: {avg_dijkstra_time:.9f} s")
-    print(f"avg a star time:       {avg_astar_time:.9f} s\n")
 
-    print(f"dijkstra was faster in :{dijkstra_faster_count} pairs")
-    print(f"a start was faster in:  {astar_faster_count} pairs")
+
+
+
+
+#LINE STUFF
+#calculate how many lines/transfers we took for the shortest path 
+#have dict of
+def build_line_map(connections):
+    line_map = {}
+    for (u, v), line in connections.items():
+        line_map[(u, v)] = line
+        line_map[(v, u)] = line
+    return line_map
+
+
+
+
+#now I make an experiemnt to test if the number of trasnfers a shortste path has from src to dst impacts anything 
+#use a* to test the imapct that line numbers have because I know a* is faster so decided to choose it
+#the importnat part is i am keepng it constant that I am using a*
+#helper function to calcualte the number of lines used in shortest path 
+def num_lines_used_in_path(path, line_map):
+    used_lines = set()
+    for i in range(len(path) - 1): #path could look lik [0,53,21,210], so check the lines used in every adjacent pairs
+        x = path[i]
+        y = path[i + 1]
+        used_lines.add(line_map[(x, y)])
+    return used_lines
+
+def random_node_test(graph, station_pos, connections, num_trials=1000):
+    num_nodes = graph.number_of_nodes()
+    line_map = build_line_map(connections)  #build our line map to use to compute transfers later 
+    same_line_times = []
+    adjacent_line_times = []
+    multi_transfer_times = []
+
+    while num_trials > 0:
+        src = random.randint(0, num_nodes - 1)
+        dst = random.randint(0, num_nodes - 1)
+        if src == dst:
+            continue
+
+        heuristic = build_heuristic_dict(station_pos, dst)
+        start = time.time()
+        pred, path = a_star(graph, src, dst, heuristic)
+        end = time.time()
+        time_taken = end - start
+
+        lines_used = num_lines_used_in_path(path, line_map)
+        num_lines = len(lines_used)
+
+        if num_lines == 1:
+            same_line_times.append(time_taken)
+        elif num_lines == 2:
+            adjacent_line_times.append(time_taken)
+        elif num_lines > 2:
+            multi_transfer_times.append(time_taken)
+
+        num_trials -= 1
+
+    same_line_avg = sum(same_line_times) / len(same_line_times) 
+    adjacent_line_avg = sum(adjacent_line_times) / len(adjacent_line_times) 
+    multi_transfers_avg = sum(multi_transfer_times) / len(multi_transfer_times) 
+    print("same line avg: \n", same_line_avg)
+    print("adj line avg: \n", adjacent_line_avg)
+    print("milti tranfer avg: \n", multi_transfers_avg)
+    
+
+    #matplotlib
+    avg_times = [same_line_avg, adjacent_line_avg, multi_transfers_avg]
+    labels = ['Same Subway Line', 'Adjacent Subway Lines', 'Multiple Transfers']
+    plt.figure(figsize=(8, 5))
+    plt.bar(labels, avg_times, color=["pink", "skyblue", "green"])
+    plt.ylabel("Average A* Time (µs)")
+    plt.title("Line Transfers VS Shortest Path Run Time")
+    plt.tight_layout()
+    plt.show()
+
+
+
+
+    #show the difference in the number of nodes in the shortest path based on lines 
+
 
     return
 
 
-#for all src we have one count
-def compare_algorithms_runtime2(dijkstra_times, a_star_times):
-    total_srcs = len(dijkstra_times)
-    total_dijkstra_time = sum(dijkstra_times)
-    total_astar_time = sum(a_star_times)
-
-    dijkstra_faster_count = 0
-    astar_faster_count = 0
-
-    for i in range(total_srcs):
-        d_time = dijkstra_times[i]
-        a_time = a_star_times[i]
-
-        if d_time < a_time:
-            dijkstra_faster_count += 1
-        elif a_time < d_time:
-            astar_faster_count += 1
-
-    avg_dijkstra_time = total_dijkstra_time / total_srcs
-    avg_astar_time = total_astar_time / total_srcs
-
-    print(f"\navg dijk time2: {avg_dijkstra_time:.9f} s")
-    print(f"avg a star time2:       {avg_astar_time:.9f} s\n")
-    print(f"dijkstra was faster in :{dijkstra_faster_count} times")
-    print(f"a start was faster in:  {astar_faster_count} times")
+stations, index = read_stations()
+connections = read_connections(index)
+test, edges = london_graph(stations, connections)
+slay = build_line_map(connections)
+random_node_test(test, stations, connections)
 
 
 
@@ -408,9 +444,8 @@ def compare_algorithms_runtime2(dijkstra_times, a_star_times):
 
 
 
-#21-250
-#78-202
-#line path transfer data
+
+
 def build_line_map(id_to_index):
     line_map = {}
     with open("london_connections.csv", "r") as file:
