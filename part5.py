@@ -121,15 +121,15 @@ connections =  read_connections(index)
 
 #dijstra with end node and constructing path to node back import heapq
 def dijkstra2(graph, source, destination):
-    adjacency = graph.get_graph()
+    #get graph and weights
+    adjacency = graph.get_graph() 
     weights = graph.get_weights()
-
     num_nodes = graph.number_of_nodes()
     visited = set()
-
+    #initzLie the distances to infintiy and the first nodeo to 0
     dist = {node: float("inf") for node in adjacency}
     dist[source] = 0
-
+    #predecessor dict to track shortest path for later
     predecessor = {node: None for node in adjacency}
 
     min_pq = []
@@ -335,38 +335,33 @@ def run_experiment2():
 
 
 
-
-
-
-
-
-
 #LINE STUFF
 #calculate how many lines/transfers we took for the shortest path 
-#have dict of
+#have dict of connections and their lines 
 def build_line_map(connections):
     line_map = {}
     for (u, v), line in connections.items():
-        line_map[(u, v)] = line
-        line_map[(v, u)] = line
+        line_map[(u, v)] = line 
+        line_map[(v, u)] = line #make both ways 
     return line_map
 
 
 
-
-#now I make an experiemnt to test if the number of trasnfers a shortste path has from src to dst impacts anything 
-#use a* to test the imapct that line numbers have because I know a* is faster so decided to choose it
-#the importnat part is i am keepng it constant that I am using a*
 #helper function to calcualte the number of lines used in shortest path 
 def num_lines_used_in_path(path, line_map):
     used_lines = set()
     for i in range(len(path) - 1): #path could look lik [0,53,21,210], so check the lines used in every adjacent pairs
         x = path[i]
-        y = path[i + 1]
+        y = path[i + 1] #look at luiesn used for each adjacent pari 
         used_lines.add(line_map[(x, y)])
     return used_lines
 
-def random_node_test(graph, station_pos, connections, num_trials=1000):
+
+#tests 2 rnadom nodes and sees how many transfers/lines it uses and calculates the avg time for shortest path depdening on line treansfesrs 
+#now I make an experiemnt to test if the number of trasnfers a shortste path has from src to dst impacts anything 
+#use a* to test the imapct that line numbers have because I know a* is faster so decided to choose it
+#the importnat part is i am keepng it constant that I am using a*
+def random_node_test(graph, station_pos, connections, num_trials=200):
     num_nodes = graph.number_of_nodes()
     line_map = build_line_map(connections)  #build our line map to use to compute transfers later 
     same_line_times = []
@@ -374,20 +369,23 @@ def random_node_test(graph, station_pos, connections, num_trials=1000):
     multi_transfer_times = []
 
     while num_trials > 0:
+        #grab 2 ranbdom nodes to test
         src = random.randint(0, num_nodes - 1)
         dst = random.randint(0, num_nodes - 1)
-        if src == dst:
+        if src == dst: #skip if same station 
             continue
 
         heuristic = build_heuristic_dict(station_pos, dst)
-        start = time.time()
+        start = time.time() #time the a star algo with the 2 random nodes 
         pred, path = a_star(graph, src, dst, heuristic)
         end = time.time()
         time_taken = end - start
 
-        lines_used = num_lines_used_in_path(path, line_map)
-        num_lines = len(lines_used)
+        lines_used = num_lines_used_in_path(path, line_map) #check which lines are used
+        num_lines = len(lines_used) #count how many
 
+
+        #match to rifht case 
         if num_lines == 1:
             same_line_times.append(time_taken)
         elif num_lines == 2:
@@ -397,6 +395,8 @@ def random_node_test(graph, station_pos, connections, num_trials=1000):
 
         num_trials -= 1
 
+
+    #averages
     same_line_avg = sum(same_line_times) / len(same_line_times) 
     adjacent_line_avg = sum(adjacent_line_times) / len(adjacent_line_times) 
     multi_transfers_avg = sum(multi_transfer_times) / len(multi_transfer_times) 
@@ -414,13 +414,6 @@ def random_node_test(graph, station_pos, connections, num_trials=1000):
     plt.title("Line Transfers VS Shortest Path Run Time")
     plt.tight_layout()
     plt.show()
-
-
-
-
-    #show the difference in the number of nodes in the shortest path based on lines 
-
-
     return
 
 
@@ -428,9 +421,53 @@ stations, index = read_stations()
 connections = read_connections(index)
 test, edges = london_graph(stations, connections)
 slay = build_line_map(connections)
-random_node_test(test, stations, connections)
+#random_node_test(test, stations, connections)
 
 
+
+
+
+#show the difference in the number of nodes in the shortest path based on lines 
+#x axis is path length, y axis is the number of lines/transfers 
+def compare_path_length_vs_transfers(graph, station_pos, connections, num_trials=300):
+    num_nodes = graph.number_of_nodes()
+    line_map = build_line_map(connections) #line map to use to see which lines used
+    path_lengths = []
+    transfer_cts = []
+
+    while num_trials > 0:
+        src = random.randint(0, num_nodes - 1)
+        dst = random.randint(0, num_nodes - 1)
+        if src == dst: #sjip if same statiuon
+            continue
+
+        heuristic = build_heuristic_dict(station_pos, dst)
+        pred, path = a_star(graph, src, dst, heuristic)
+        #get the length of the path and the number of transfers 
+        path_length = len(path)
+        num_transfers = len(num_lines_used_in_path(path, line_map))
+        path_lengths.append(path_length)
+        transfer_cts.append(num_transfers)
+        num_trials -= 1
+
+    #use a scatter plot 
+    plt.figure(figsize=(8, 5))
+    plt.scatter(path_lengths, transfer_cts, color='pink', label='Trials')
+    #trned line
+    z = np.polyfit(path_lengths, transfer_cts, 1)  #linear line ,d egree 1
+    p = np.poly1d(z)
+    plt.plot(sorted(path_lengths), p(sorted(path_lengths)), color='red', linestyle='--', label='Trend Line')
+    plt.xlabel("Path Length (Number of Stations Go To)")
+    plt.ylabel("Number of Line Transfers")
+    plt.title("Path Length vs Number of Line Transfers Using A*")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+    return 
+
+
+compare_path_length_vs_transfers(test, stations, connections)
 
 
 
