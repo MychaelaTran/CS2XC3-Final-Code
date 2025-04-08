@@ -199,7 +199,27 @@ def bellmanFord(graph, startNode):
     return dist, predecessors
 
 
+#floyd warshall, directly from lab3: 
+def floyd_warshall(G : Graph):
+    n = G.number_of_nodes() #num of nodes
+    #making the ditst matrix 
+    d = [[float('inf')] * n for _ in range(n)]
+    for i in range(n):
+        #distnace from a node to itself set to zeor 
+        d[i][i] = 0  
 
+    #fill im graph edge weights 
+    weights = G.get_weights()
+    for (u, v), w in weights.items():
+        d[u][v] = w
+
+    #the floyd warshall algorithm itself 
+    for k in range(n):
+        for i in range(n):  # we are iteratinf over all pairs of nodes (i,j)
+            for j in range(n):
+                if d[i][j] > d[i][k] + d[k][j]:  #if path from i to j thru k is shorter then update d[i][j] with k
+                    d[i][j] = d[i][k] + d[k][j]
+    return d
 
 # test = generate_random_graphPos(5, 19)
 # test1 = generate_random_graphNeg(5,18)
