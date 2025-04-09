@@ -163,12 +163,12 @@ def experiment(nodes, edges, trials=10):
         source = random.randint(0, nodes - 1)##pick randon node
 
         #Get the correct results (since k4 =100% so we know that this output will be correct and comparable for our others k)
-        start_full_d = time.time()
+        start_correct_d = time.time()
         accurate_dijkstra_output = dijkstra(G, source, k4)
-        end_full_d = time.time()
-        start_full_b = time.time()
+        end_correct_d = time.time()
+        start_accurate_b = time.time()
         accurate_bellman_output = bellman_ford(G, source, k4)
-        end_full_b = time.time()
+        end_accurate_b = time.time()
 
 
         #test each k 
@@ -188,8 +188,8 @@ def experiment(nodes, edges, trials=10):
             bellman_acc[k].append(measure_accuracy(partial_b, accurate_bellman_output))
 
         
-        dijkstra_times[k4].append(end_full_d - start_full_d)
-        bellman_times[k4].append(end_full_b - start_full_b)
+        dijkstra_times[k4].append(end_correct_d - start_correct_d)
+        bellman_times[k4].append(end_accurate_b - start_accurate_b)
         dijkstra_acc[k4].append(100.0)
         bellman_acc[k4].append(100.0)
 
