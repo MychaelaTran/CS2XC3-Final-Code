@@ -1,5 +1,5 @@
 import heapq
-from part3 import Graph
+from Graph import Graph
 import csv
 from part3 import dijkstra
 from part4 import a_star

@@ -1,5 +1,5 @@
 import heapq
-from part3 import Graph
+from Graph import Graph
 
 
 def a_star(graph, source, destination, heuristic):
