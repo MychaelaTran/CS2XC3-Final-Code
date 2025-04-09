@@ -104,24 +104,6 @@ def bellman_ford(graph: Graph, source, k):
     
     return output
 
-def draw_plot(run_arr, mean_val, filename="plot.png", title="Run time for retrieval", yaxis="Time in seconds", xaxis="Iterations"):
-    x = np.arange(0, len(run_arr), 1)
-    fig = plt.figure(figsize=(12, 6))
-    plt.bar(x, run_arr)
-    plt.tight_layout(pad=2.0)
-
-    averagetext = plt.text(len(run_arr) * (-0.05), mean_val + (max(run_arr) * 0.015), f"Mean = {mean_val:.3f}s",
-                           va='center', color='red', fontsize=12, fontweight="bold")
-    averagetext.set_path_effects([PathEffects.withStroke(linewidth=2, foreground="white")])
-
-    plt.axhline(mean_val, color="red", linestyle="--", label="Avg")
-    plt.xlabel(xaxis)
-    plt.ylabel(yaxis)
-    plt.title(title)
-    plt.savefig(filename)
-    plt.close()
-    print(f"Saved: {filename}")
-
 
 
 
