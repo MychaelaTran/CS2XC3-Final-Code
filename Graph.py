@@ -23,6 +23,8 @@ class Graph():
     def add_node(self,):
         #add a new node number = length of existing node
         self.graph[len(self.graph)] = []
+    def add_node_explicit(self, node):
+        self.graph[node] = []
 
     def add_edge(self, node1, node2, weight):
         if node2 not in self.graph[node1]:
